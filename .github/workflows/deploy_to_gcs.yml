@@ -13,6 +13,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
+    - name: Install pnpm
+      run: curl -f https://get.pnpm.io/v6.js | node - add --global pnpm
+
     - name: Set up Node.js (if using Node.js for build)
       uses: actions/setup-node@v2
       with:
@@ -23,7 +26,7 @@ jobs:
         pnpm install
         pnpm run build
 
-    - name: Deploy to GCS
+    - name: Set up gcloud CLI
       uses: google-github-actions/setup-gcloud@v0.2.0
       with:
         project_id: MFA_POC
