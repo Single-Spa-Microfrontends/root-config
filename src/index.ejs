@@ -19,13 +19,7 @@
 
     More information about shared dependencies can be found at https://single-spa.js.org/docs/recommended-setup#sharing-with-import-maps.
   -->
-  <script type="systemjs-importmap">
-    {
-      "imports": {
-        "single-spa": "https://cdn.jsdelivr.net/npm/single-spa@5.9.0/lib/system/single-spa.min.js"
-      }
-    }
-  </script>
+  <script type="systemjs-importmap" src="https://storage.googleapis.com/import-maps/importmap.json"> </script>
   <link rel="preload" href="https://cdn.jsdelivr.net/npm/single-spa@5.9.0/lib/system/single-spa.min.js" as="script">
 
   <!-- Add your organization's prod import map URL to this script's src  -->
@@ -35,14 +29,16 @@
   <script type="systemjs-importmap">
     {
       "imports": {
+        <!--      shared dependencies -->
         "react": "https://cdn.jsdelivr.net/npm/react@17.0.1/umd/react.production.min.js",
         "react-dom": "https://cdn.jsdelivr.net/npm/react-dom@17.0.1/umd/react-dom.production.min.js",
-        "single-spa": "https://cdn.jsdelivr.net/npm/single-spa@5.8.2/lib/system/single-spa.min.js",
-        "@ssm/styleguide":  "https://react.microfrontends.app/styleguide/504c8516e30274fc0e3221a719d5355b14af9500/react-mf-styleguide.js",
+        "root-config": "//localhost:9000/ssm-root-config.js",
+        <!-- applications -->
         "@ssm/root-config": "//localhost:9000/ssm-root-config.js",
         "@ssm/angular-new": "//localhost:9001/main.js",
         "@ssm/angular-legacy": "//localhost:9002/main.js",
         "@ssm/navbar": "//localhost:9003/ssm-react-navbar.js"
+        "@ssm/styleguide":  "//localhost:9004/styleguide.js",
       }
     }
   </script>
