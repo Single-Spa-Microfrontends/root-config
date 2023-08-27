@@ -6,33 +6,66 @@ on:
       - main
 
 jobs:
-  deploy:
+  setup-and-build:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Install pnpm
-      run: curl -f https://get.pnpm.io/v6.js | node - add --global pnpm
+      - name: Set up Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18'  # or your preferred version
 
-    - name: Set up Node.js (if using Node.js for build)
-      uses: actions/setup-node@v2
-      with:
-        node-version: '18'  # or your preferred version
+      - name: Install pnpm
+        run: curl -f https://get.pnpm.io/v6.js | node - add --global pnpm
+    
+      - name: Install dependencies
+        run: pnpm install
 
-    - name: Install dependencies and build (if necessary)
-      run: |
-        pnpm install
-        pnpm run build
+      - name: Build
+        run: pnpm run build
 
-    - name: Set up gcloud CLI
-      uses: google-github-actions/setup-gcloud@v0.2.0
-      with:
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-        service_account_key: ${{ secrets.GCP_SA_KEY }}
-        export_default_credentials: true
+      - name: Archive build output
+        uses: actions/upload-artifact@v2
+        with:
+          name: dist
+          path: dist/
 
-    - name: Upload artifacts to GCS
-      run: |
-        gsutil -m cp -r ./dist/* gs://${{ secrets.GCS_BUCKET_NAME }}/root-config
+  deploy-gcs:
+    needs: setup-and-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build output
+        uses: actions/download-artifact@v2
+        with:
+          name: dist
+          path: dist/
+
+      - name: Set up gcloud CLI
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Extract repo name
+        run: |
+          echo "REPOSITORY_NAME=$(basename $GITHUB_REPOSITORY)" >> $GITHUB_ENV
+
+      - name: Upload artifacts to GCS
+        run: gsutil -m cp -r ./dist/* gs://${{ secrets.GCS_BUCKET_NAME }}/$REPOSITORY_NAME/$GITHUB_SHA
+
+  update-import-map:
+    needs: deploy-gcs
+    runs-on: ubuntu-latest
+    steps:
+      - name: Extract repo name
+        run: |
+          echo "REPOSITORY_NAME=$(basename $GITHUB_REPOSITORY)" >> $GITHUB_ENV
+
+      - name: Update import map
+        run: |
+          curl -u ${{ secrets.DEPLOYER_USERNAME }}:${{ secrets.DEPLOYER_PASSWORD }} -X PATCH \
+               -d '{ "service":"@ssm/'"$REPOSITORY_NAME"'", "url":"https://storage.googleapis.com/${{ secrets.GCS_BUCKET_NAME }}/'"$REPOSITORY_NAME"'/'"$GITHUB_SHA"'/ssm-'"$REPOSITORY_NAME"'.js" }' \
+               "http://${{ secrets.DEPLOYER_HOST }}/services?env=test"
