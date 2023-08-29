@@ -1,11 +1,11 @@
-import { registerApplication, start } from "single-spa";
+import { start } from "single-spa";
 import {
   constructApplications,
-  constructRoutes,
   constructLayoutEngine,
+  constructRoutes,
 } from "single-spa-layout";
 import microfrontendLayout from "./microfrontend-layout.html";
-import AppBuilder from './AppBuilder';
+import { registerApps } from "./applicationRegistrator";
 
 const routes = constructRoutes(microfrontendLayout);
 
@@ -16,16 +16,13 @@ const applications = constructApplications({
   },
 });
 
-const layoutEngine = constructLayoutEngine({ routes, applications, active: false });
-
-applications.map(app => {
-  return new AppBuilder(app)
-      .withAllFeatureFlags()
-      .build()
-}).forEach((app) => {
-  registerApplication(app)
+const layoutEngine = constructLayoutEngine({
+  routes,
+  applications,
+  active: false,
 });
 
+registerApps(applications);
 System.import("@ssm/styleguide").then(() => {
   // Activate the layout engine once the styleguide CSS is loaded
   layoutEngine.activate();
